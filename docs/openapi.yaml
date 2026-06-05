@@ -1,0 +1,395 @@
+openapi: 3.0.3
+info:
+  title: Cybernaut Social Graph API
+  version: 1.0.0
+  description: REST API for users, friendships, graph data, recommendations, and recommendation feedback.
+servers:
+  - url: http://localhost:5000/api
+    description: Local development
+paths:
+  /users:
+    get:
+      summary: List all users
+      responses:
+        "200":
+          description: Users returned successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    post:
+      summary: Create a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserInput"
+            example:
+              username: Alice
+              age: 28
+              hobbies:
+                - Coding
+                - Gaming
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/ServerError"
+  /users/{id}:
+    put:
+      summary: Update a user
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserInput"
+            example:
+              username: Alice Cooper
+              age: 29
+              hobbies:
+                - Coding
+                - Music
+      responses:
+        "200":
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    delete:
+      summary: Delete a user
+      description: Users with active friendships must be unlinked before deletion.
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "200":
+          description: User deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+              example:
+                message: User deleted Successfully
+        "409":
+          description: User still has friendships or was not found by current controller behavior
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "500":
+          $ref: "#/components/responses/ServerError"
+  /users/{id}/link:
+    post:
+      summary: Create a bidirectional friendship
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FriendshipInput"
+            example:
+              friendId: 665f07c0d1f6a8c4ccf2a111
+      responses:
+        "200":
+          description: Friendship created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Friendship already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "500":
+          $ref: "#/components/responses/ServerError"
+  /users/{id}/unlink:
+    delete:
+      summary: Remove a bidirectional friendship
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FriendshipInput"
+            example:
+              friendId: 665f07c0d1f6a8c4ccf2a111
+      responses:
+        "200":
+          description: Friendship removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+  /users/{id}/recommendations:
+    get:
+      summary: Get friend and hobby recommendations
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "200":
+          description: Recommendations returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecommendationsResponse"
+        "500":
+          $ref: "#/components/responses/ServerError"
+  /users/{id}/recommendations/feedback:
+    post:
+      summary: Submit recommendation feedback
+      description: Accepted friend feedback also links users when they are not already friends.
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FeedbackInput"
+            example:
+              targetUserId: 665f07c0d1f6a8c4ccf2a222
+              accepted: true
+      responses:
+        "200":
+          description: Existing feedback updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "201":
+          description: Feedback saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+  /graph:
+    get:
+      summary: Get graph nodes and edges
+      responses:
+        "200":
+          description: Graph data returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GraphResponse"
+        "500":
+          $ref: "#/components/responses/ServerError"
+components:
+  parameters:
+    UserId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: MongoDB ObjectId of the user
+  responses:
+    BadRequest:
+      description: Invalid request body
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Message"
+    NotFound:
+      description: User not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Message"
+    ServerError:
+      description: Server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Message"
+  schemas:
+    UserInput:
+      type: object
+      required:
+        - username
+        - age
+        - hobbies
+      properties:
+        username:
+          type: string
+          minLength: 1
+        age:
+          type: number
+          minimum: 1
+          maximum: 150
+        hobbies:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            minLength: 1
+    User:
+      allOf:
+        - $ref: "#/components/schemas/UserInput"
+        - type: object
+          properties:
+            _id:
+              type: string
+            friends:
+              type: array
+              items:
+                type: string
+            popularityScore:
+              type: number
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+    FriendshipInput:
+      type: object
+      required:
+        - friendId
+      properties:
+        friendId:
+          type: string
+    FeedbackInput:
+      type: object
+      required:
+        - targetUserId
+        - accepted
+      properties:
+        targetUserId:
+          type: string
+        accepted:
+          type: boolean
+    FriendRecommendation:
+      type: object
+      properties:
+        userId:
+          type: string
+        username:
+          type: string
+        score:
+          type: number
+        reason:
+          type: string
+        sourceSignals:
+          type: array
+          items:
+            type: string
+    HobbyRecommendation:
+      type: object
+      properties:
+        hobby:
+          type: string
+        frequency:
+          type: number
+        score:
+          type: number
+        reason:
+          type: string
+        sourceSignals:
+          type: array
+          items:
+            type: string
+    RecommendationsResponse:
+      type: object
+      properties:
+        friendRecommendations:
+          type: array
+          items:
+            $ref: "#/components/schemas/FriendRecommendation"
+        hobbyRecommendations:
+          type: array
+          items:
+            $ref: "#/components/schemas/HobbyRecommendation"
+    GraphNode:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum:
+            - highScore
+            - lowScore
+        data:
+          type: object
+          properties:
+            username:
+              type: string
+            age:
+              type: number
+            popularityScore:
+              type: number
+        position:
+          type: object
+          properties:
+            x:
+              type: number
+            y:
+              type: number
+    GraphEdge:
+      type: object
+      properties:
+        id:
+          type: string
+        source:
+          type: string
+        target:
+          type: string
+    GraphResponse:
+      type: object
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/GraphNode"
+        edges:
+          type: array
+          items:
+            $ref: "#/components/schemas/GraphEdge"
+    Message:
+      type: object
+      properties:
+        message:
+          type: string
