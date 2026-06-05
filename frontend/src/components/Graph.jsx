@@ -211,7 +211,7 @@ function Graph() {
                     onEdgesChange={onEdgesChange}
                     onNodeClick={handleNodeClick}
                 >
-                    <MiniMap />
+                    {/* <MiniMap /> */}
                     <Controls />
                     <Background variant={BackgroundVariant.Dots} />
                 </ReactFlow>
